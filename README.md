@@ -35,7 +35,7 @@ Run `make update`. This will pull the latest master build.
 
 * `cd` into the keyframe repo you want to run this on
 
-* run `DEBUG=keyframe-validator <path-to-this-repo>/bin/keyframe-validator`
+* run `DEBUG=keyfctl <path-to-this-repo>/bin/keyfctl`
 
 Run it without DEBUG if you want less output.
 
