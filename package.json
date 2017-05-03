@@ -1,0 +1,26 @@
+{
+  "name": "keyfctl",
+  "version": "1.0.0",
+  "description": "",
+  "main": "validate.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": {
+    "keyfctl": "./bin/keyfctl"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/resin-io-modules/keyfctl"
+  },
+  "author": "",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "bluebird": "^3.4.7",
+    "capitano": "^1.7.4",
+    "debug": "^2.6.3",
+    "lodash": "^4.17.4",
+    "mkdirp": "^0.5.1",
+    "yamljs": "^0.2.8"
+  }
+}
