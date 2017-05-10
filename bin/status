@@ -1,0 +1,28 @@
+#!/bin/bash
+
+set -e
+
+component=$1; shift
+
+for t in configmap; do
+	echo "==> ${t}"
+	kubectl get ${t} | head -n 1
+	kubectl get ${t} | grep "${component}"
+	echo "
+	"
+done
+
+for t in ingress service deployment; do
+	echo "==> ${t}"
+	kubectl get ${t} ${component}
+	echo "
+	"
+done
+
+for t in ingress service deployment; do
+	echo "==> ${t}"
+	kubectl describe ${t} ${component}
+	echo "
+	"
+done
+

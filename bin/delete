@@ -1,0 +1,6 @@
+#!/bin/bash
+
+component=$1; shift
+
+kubectl delete -f k8s/releases/${component}
+
