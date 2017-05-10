@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -ex
+
+component=$1; shift
+
+kubectl apply -f k8s/releases/${component}
+
