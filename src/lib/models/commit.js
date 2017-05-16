@@ -3,19 +3,48 @@
 const
   Promise   = require('bluebird'),
   _         = require("lodash"),
-  util      = require('util'),
   utils     = require('../shared/utils'),
-  file      = require('../shared/file'),
-  Keyframe  = require('../shared/keyframe'),
-  Frame     = require('../shared/frame'),
-  Component = require('../shared/component')
+  git       = require('../shared/git'),
+  Keyframe  = require('../models/keyframe'),
+  Frame     = require('../models/frame'),
+  Component = require('../models/component')
 
 module.exports = class Commit {
   constructor(revision) {
-    this.revision = revision.substring(0,6)
+    this.revision = revision.substring(0,7)
     this.errors = []
     this.valid = true
     this.rationale = []
+    this.keyframe = new Keyframe(this.revision)
+
+  }
+
+  loadVariables() {
+    git.readFileAt(
+      './variables.yml',
+      this.revision
+    )
+    .then(yaml => {
+      this.rawVariables = yaml
+      this.variables = utils.parseYaml(yaml)
+    })
+    .catch(err => {
+      this.errors.push(err)
+      this.rationale.push('missing variables.yml')
+    })
+    .return(this)
+  }
+
+  getData() {
+    return Promise.all([
+      this.getDate(),
+      this.getSubject(),
+      this.getAuthorName(),
+      this.getAuthorEmail()
+    ])
+    .then(() => this.loadVariables()) // reads variables.yml into commit obj
+    .then(() => this.keyframe.loadData) // adds keyframe obj to commit and loads data
+    .then(() => this.getFrames()) // creates frames from commit, keyframe, vars, etc.
   }
 
   getDate() {
@@ -54,23 +83,6 @@ module.exports = class Commit {
     )
   }
 
-  getKeyframe() {
-    this.keyframe = (new Keyframe(this.revision))
-  }
-
-  getVariables() {
-    return file.readAt('./variables.yml', this.revision, utils.parseYaml)
-    .then(data => {
-      this.variables = data
-      return this
-    })
-    .catch(err => {
-      this.errors.push(err)
-      this.rationale.push('missing variables.yml')
-      return this
-    })
-  }
-
   globalVars() {
     return _.get(this.variables, 'global', [])
   }
@@ -80,23 +92,42 @@ module.exports = class Commit {
   }
 
   getFrames() {
-    this.frames = _.map(_.get(this.keyframe, 'keyframe.components', {}), (val, key) => {
-      return new Frame(this.revision, this.timestamp, new Component(key, val.version, val.image))
-    })
-
-    return this
+    this.frames = this.keyframe.frames()
   }
 
-  populateFrames() {
-    return Promise.each(this.frames, frame => {
-      return frame.addDeployment()
-      .then(() => frame.addService())
-      .then(() => frame.addIngress())
-      .then(() => frame.addConfigmap())
-    })
+  isK8sCommit() {
+    return (new RegExp(/^k8s-/i)).test(this.subject)
   }
 
   validate() {
+    // If this is a commit made by keyfctl, return false
+    if (this.isK8sCommit()) return false
+
+    // If the keyframe is invalid, return false
+    if (! this.keyframe.validate()) return false
+
+    // If the frames are invalid, return false
+    for (const frame of this.frames) {
+      // combination of all referenced vars, global and component-scoped
+      frame.usedVars = _.union(
+        this.keyframe.componentVars(frame.component.name),
+        this.keyframe.globalVars()
+      )
+
+      // union of all available vars, global and component-scoped
+      frame.availableVars = _.union(
+        this.globalVars(),
+        this.componentVars(frame.component.name)
+      )
+
+      if (! frame.validate()) return false
+    }
+
+    // Otherwise, return the validity status of the commit
+    return this.valid
+  }
+
+  legacyValidate() {
     if (this.keyframe.valid !== true) {
       frame.valid = false
       frame.rationale.push('keyframe is invalid')
@@ -117,22 +148,6 @@ module.exports = class Commit {
         frame.rationale.push('commit is invalid')
       }
 
-      // combination of all referenced vars, global and component-scoped
-      frame.usedVars = _.union(
-        this.keyframe.componentVars(frame.component.name),
-        this.keyframe.globalVars()
-      )
-
-      // union of all available vars, global and component-scoped
-      frame.availableVars = _.union(
-        this.globalVars(),
-        this.componentVars(frame.component.name)
-      )
-
-      if (! frame.validateVars()) {
-        this.valid = false
-        this.rationale.push('invalid variables used in frame')
-      }
     }
   }
 

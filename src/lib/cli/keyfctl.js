@@ -6,7 +6,8 @@ const
   debug       = require('debug')('keyfctl'),
   capitano    = require('capitano'),
   core        = require('../shared/core'),
-  utils       = require('../shared/utils')
+  utils       = require('../shared/utils'),
+  kubernetes  = require('../shared/kubernetes')
 
 const help = (params, options) => {
   console.log(`Usage: keyfctl [COMMANDS] [OPTIONS]`)
@@ -51,7 +52,50 @@ capitano.globalOption({
 })
 
 capitano.command({
-  signature: 'k8s',
+  signature: 'k8s get target',
+  description: 'Display the cluster currently configured for k8s commands',
+  action: (params, options) => {
+    kubernetes.viewActiveConfig()
+    .then(console.log)
+    .catch(utils.printStderr)
+  }
+})
+
+capitano.command({
+  signature: 'k8s apply <component>',
+  description: 'Apply generated releases for a component to a cluster',
+  action: (params, options) => {
+    kubernetes.apply(params.component)
+    .then(console.log)
+    .catch(utils.printStderr)
+  }
+})
+
+capitano.command({
+  signature: 'k8s logs <component>',
+  description: 'Get logs for component containers',
+  action: (params, options) => {
+    console.log(params, options)
+    kubernetes.logs(params.component)
+    .then(console.log)
+  }
+})
+
+capitano.command({
+  signature: 'k8s delete <component>',
+  description: 'Delete a component and all its resources from a k8s cluster',
+  action: (params, options) => {
+    kubernetes.deleteComponent(params.component)
+    .then(stdout => {
+      console.log(stdout)
+      console.log('Deleted ingress, service, and deployment. You may need to manually clean up other resources.')
+    })
+    .catch(utils.printStderr)
+  }
+})
+
+capitano.command({
+  signature: 'k8s releases generate',
   options: [{
     signature: 'nowrite',
     boolean: true,
@@ -85,7 +129,7 @@ capitano.command({
 
     if (options.verbose) {
       res.tap(frames => {
-        console.log('==> All frames')
+        console.log('==> All valid frames')
         for (let frame of frames) {
           // Output some feedback about the frame history
           console.log(utils.printFormatFrame(frame))
@@ -100,14 +144,14 @@ capitano.command({
 
     if (options.component != null) {
       res = res.filter(frame => {
-        // Get rid of any frames that aren't deployable or are redundant
-        return frame.component.name == options.component
+        // Get rid of any frames that don't match the component filter
+        return frame.component.name === options.component
       })
     }
 
     if (options.verbose) {
       res.tap(frames => {
-        console.log('==> Valid frames')
+        console.log('==> Valid, actionable frames')
         for (let frame of frames) {
           // Output some feedback about the frame history
           console.log(utils.printFormatFrame(frame))
@@ -116,7 +160,7 @@ capitano.command({
     }
 
     if (!options.writeall) {
-      res = res.filter(frame => core.newRelease(frame, options))
+      res = res.filter(frame => frame.isNewRelease())
       .tap(frames => {
         console.error('==> New frames')
         for (let frame of frames) {
@@ -128,12 +172,11 @@ capitano.command({
     }
 
     // unless writing to disk is disabled, write + commit
-    if (!options['nowrite']) {
+    if (! options['nowrite']) {
       // write each frame into a commit, (unless --nocommit) unless it already exists
-      res.mapSeries(frame => core.write(frame, !options['nocommit']))
-      .catch(err => {
+      res.mapSeries(frame => frame.write(!options['nocommit']))
+      .tapCatch(err => {
         console.error(err.message)
-        process.exit(1)
       })
     }
   }
