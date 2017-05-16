@@ -4,8 +4,8 @@
 
 ## What does it do?
 
-Currently, this tool will read `keyframe.yml` , `variables.yml`, and
-`k8s/templates/**/*.yml` files from the repository in which
+Currently, this tool will read `keyframe.yml` and `variables.yml`
+files from the repository in which
 it was invoked, and then look back through git history to build a set of
 'frames', or target states per-component. It is then capable of determining the
 action that needs to be taken to move from frame to frame, and will make commits
@@ -15,38 +15,44 @@ This will probably all make a lot more sense if you look at a keyframe repo.
 
 ## Install
 
-1. Clone this repo
-2. From within this repo, run `make install`
-
-This will install `keyfctl` to /usr/local/bin. Like `resinctl`, the `keyfctl` executable is a
-wrapper around a docker container, and so must be run in a docker-compatible
-environment. On first usage, Docker will pull the image.
+TODO. Currently, just clone this repo and reference `./bin/keyfctl` from your
+keyframe repo.
 
 ## Manual Installation
 
-Pull or build your own `resin/keyfctl:master` container and just run `make install`, which
-will copy the executable to `/usr/local/bin`.
+Currently same as install above.
 
 ## Updating
 
-Run `make update`. This will pull the latest master build.
+Pull the latest code.
 
 ## Usage
 
 * `cd` into the keyframe repo you want to run this on
+* run `DEBUG=keyfctl <path-to-this-repo>/bin/keyfctl help`
 
-* run `DEBUG=keyfctl <path-to-this-repo>/bin/keyfctl`
+Run it without DEBUG if you want less output. 99% of the time, as a developer
+you probably want to run `keyfctl release generate --nocommit -v`, which will
+simulate the changes that will be committed when your PR into the keyframe is
+actually merged. `--nocommit` will disable actually committing the changes to
+the release files (which must be done post-merge to master), and `-v` will give
+more output about what `keyfctl` is doing and why.
 
-Run it without DEBUG if you want less output.
+### Commands
+
+k8s help
+k8s get target
+k8s apply <component>
+k8s logs <component>
+k8s delete <component>
+
+release generate [-c component --nowrite --nocommit -v --vv]
 
 ## Development
 
-Run `make build` to build, and bind-mount in your local directory when testing
-the image:
-
-```
-docker run -it --rm -v $(pwd):/mnt/keyframe localhost/keyfctl:latest --help
-```
+Same as usage, but it can also be handy to add the `--writeall` flag to force
+writing every frame to disk. This will leave your final state as it would be
+assuming you had no release commits in the repo.
 
 ## TODO
 

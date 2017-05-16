@@ -4,10 +4,16 @@ const
   Promise = require('bluebird'),
   _       = require("lodash"),
   exec    = Promise.promisify(require("child_process").exec),
-  Commit  = require('../shared/commit')
+  Commit  = require('../models/commit')
 
-module.exports.commits = (head) => {
-  return exec(`git rev-list ${head}`)
+const commits = (start, end) => {
+  let cmd = `git rev-list ${start}`
+
+  if (end) {
+    cmd = cmd + ` ^${end}`
+  }
+
+  return exec(cmd)
   .then(revs => {
     const revsList = _.compact(_.split(revs, "\n"))
 
@@ -20,4 +26,17 @@ module.exports.commits = (head) => {
     })
   })
 }
+module.exports.commits = commits
+
+const readFileAt = (filename, revision, callback) => {
+  if (callback) {
+    return exec(`git show ${revision}:${filename}`)
+    .then(contents => {
+      return callback(contents)
+    })
+  }
+
+  return exec(`git show ${revision}:${filename}`)
+}
+module.exports.readFileAt = readFileAt
 
