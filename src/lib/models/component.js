@@ -22,7 +22,7 @@ module.exports = class Component {
       }
     }
 
-    this.ports[0].name = this.ports[0].name || 'defaultPort'
+    this.ports[0].name = this.ports[0].name || 'defaultport'
 
     return this.ports
   }

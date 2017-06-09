@@ -133,9 +133,9 @@ module.exports = class Frame {
     const regex = new RegExp('k8s-' + this.commit.revision.substring(0, 6), 'i')
 
     return git.commits('HEAD')
-    .map(commit => commit.getSubject())
+    .each(commit => commit.getSubject())
     .filter(commit => {
-      if (! commit.subject) {
+      if (!commit.subject) {
         throw new Error(`Something failed while reading commits! missing subject on commit ${commit.revision}`)
       }
       return regex.test(commit.subject)

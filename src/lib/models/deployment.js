@@ -50,7 +50,7 @@ module.exports = class Deployment {
   ports() {
     return _.map(_.get(this.component, 'ports', []), domain => {
       const out = {
-        name: domain.name || 'defaultPort',
+        name: domain.name || 'defaultport',
         containerPort: domain.port
       }
 

@@ -24,10 +24,10 @@ module.exports = class Service {
   ports() {
     return _.map(_.get(this.component, 'ports', []), port => {
       return {
-        name: port.name || 'defaultPort',
+        name: port.name || 'defaultport',
         protocol: port.protocol || 'TCP',
         port: port.port,
-        targetPort: port.name || 'defaultPort'
+        targetPort: port.name || 'defaultport'
       }
     })
   }
