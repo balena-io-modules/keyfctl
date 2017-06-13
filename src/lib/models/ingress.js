@@ -3,7 +3,7 @@
 const
   _     = require('lodash'),
   file  = require('../shared/file'),
-  utils = require('../shared/utils')
+  utils = require('../../../lib/utils')
 
 module.exports = class Ingress {
   constructor(revision, component) {

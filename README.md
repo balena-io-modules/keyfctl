@@ -28,6 +28,20 @@ Pull the latest code.
 
 ## Usage
 
+### Linting
+
+```
+const Keyfctl = require('keyfctl')
+
+Keyfctl.lint('<base SHA>', '<head SHA>')
+// returns
+// {
+//   valid: <bool>,
+//   messages: [<string>],
+//   frames: [<Service>]
+// }
+```
+
 * `cd` into the keyframe repo you want to run this on
 * run `DEBUG=keyfctl <path-to-this-repo>/bin/keyfctl help`
 
