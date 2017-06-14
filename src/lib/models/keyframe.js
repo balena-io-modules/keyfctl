@@ -8,7 +8,7 @@ const
   Frame   = require('../models/frame')
 
 module.exports = class Keyframe {
-  constructor(revision) {
+  constructor(revision, cwd) {
     this.revision  = revision
     this.errors    = []
     this.rationale = []
@@ -16,7 +16,8 @@ module.exports = class Keyframe {
 
     this.loadData = git.readFileAt(
       './keyframe.yml',
-      this.revision
+      this.revision,
+      cwd
     )
     .then(yaml => {
       this.raw = yaml
