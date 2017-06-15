@@ -97,6 +97,11 @@ const resolveAction = (frames) => {
       frame.action = 'update'
     }
 
+    if (JSON.stringify(frame.component.ports) !== JSON.stringify(prev.component.ports)) {
+      frame.rationale.push('change in component ports')
+      frame.action = 'update'
+    }
+
     if (frame.action == null) {
       frame.action = 'noop'
     }
