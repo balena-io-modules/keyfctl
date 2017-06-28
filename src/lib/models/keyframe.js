@@ -41,6 +41,10 @@ module.exports = class Keyframe {
   validate() {
     if (! this.valid) return this.valid
 
+    // This can occur if there were previously no components defined (ie. a fresh
+    // environment with skeleton keyframes)
+    if (!this.components) return this.valid
+
     if (_.get(this, 'keyframe.components', []).length < 1) {
       this.valid = false
       this.rationale.push('no components defined in keyframe')
