@@ -41,7 +41,7 @@ module.exports = class Ingress {
     }
 
     if (this.tls().length > 0) {
-      _.set(this.release, 'metadata.annotations["kubernetes.io/tls-acme"]', true)
+      _.set(this.release, 'metadata.annotations["kubernetes.io/tls-acme"]', 'true')
     }
   }
 
@@ -76,7 +76,7 @@ module.exports = class Ingress {
   tls() {
     return _.map(this.component.getPorts(), port => {
       return {
-        secretName: `${this.component.name}-tls`,
+        secretName: `${this.component.name}-${port.name || 'default'}-tls`,
         hosts: [ port.domain ]
       }
     })
