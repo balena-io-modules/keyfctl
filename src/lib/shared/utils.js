@@ -7,6 +7,7 @@ const
 { writeFileAsync } = Promise.promisifyAll(require('fs')),
   YAML             = require('yamljs'),
   util             = require('util')
+const mkdirp           = Promise.promisify(require('mkdirp'))
 
 const writeRelease = (path, data) => {
   if (! data) {
@@ -20,7 +21,8 @@ const writeRelease = (path, data) => {
   // attempt to parse the yaml, to make sure it's valid
   parseYaml(output)
 
-  return writeFileAsync(`${path}/${filename}`, output)
+  return mkdirp(path)
+  .then(() => writeFileAsync(`${path}/${filename}`, output))
 }
 module.exports.writeRelease = writeRelease
 

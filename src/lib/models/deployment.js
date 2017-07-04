@@ -6,30 +6,28 @@ const
   utils = require('../shared/utils')
 
 module.exports = class Deployment {
-  constructor(revision, timestamp, component) {
-    this.component = component
-    this.revision = revision
-    this.timestamp = timestamp
-    this.errors = []
-    this.rationale = []
-    this.valid = true
-    this.template = _.get(this, 'component.kubernetes.deployment', Deployment.template())
-  }
-
-  writeRelease() {
-    return utils.writeRelease(utils.releasePath(this.component.name), this.release)
+  constructor(spec) {
+    this.spec = spec
+    this.template = _.get(this.spec, 'kubernetes.deployment', Deployment.template())
   }
 
   versionName() {
-    return `${this.component.name}-${this.component.version}-${this.revision}`
+    return `${this.spec.name}-${this.spec.version}`
   }
 
-  addEnvironmentVars(vars) {
+  usedVars() {
+    return _.get(this.spec, 'variables', [])
+  }
+
+  usedSecrets() {
+    return _.get(this.spec, 'secrets', [])
+  }
+
+  addEnvironmentVars() {
     const env = []
 
-    _.set(this.release, 'spec.template.spec.containers[0].env', [])
-    _.forEach(vars, (variable) => {
-      this.release.spec.template.spec.containers[0].env.push({
+    let envs = _.map(this.usedVars(), (variable) => {
+      return {
         name: variable,
         valueFrom: {
           configMapKeyRef: {
@@ -37,21 +35,31 @@ module.exports = class Deployment {
             key: variable,
           }
         }
-      })
+      }
     })
-  }
 
-  isValid() {
-    if (this.valid) return true
+    envs = envs.concat(_.map(this.usedSecrets(), (variable) => {
+      return {
+        name: variable,
+        valueFrom: {
+          secretKeyRef: {
+            name: this.versionName(),
+            key: variable,
+          }
+        }
+      }
+    }))
 
-    return false
+    if (envs.length < 1) return
+
+    _.set(this.release, 'spec.template.spec.containers[0].env', envs)
   }
 
   ports() {
-    return _.map(_.get(this.component, 'ports', []), domain => {
+    return _.map(_.get(this.spec, 'ports', []), domain => {
       const out = {
         name: domain.name || 'defaultport',
-        containerPort: domain.port
+        containerPort: parseInt(domain.port, 10)
       }
 
       return out
@@ -59,29 +67,23 @@ module.exports = class Deployment {
   }
 
   instances() {
-    return _.get(this.component, 'instances', 1)
+    return _.get(this.spec, 'instances', 1)
   }
 
   args() {
-    return _.get(this.component, 'args', undefined)
+    return _.get(this.spec, 'args', undefined)
   }
 
-  buildRelease(vars) {
-    if (! this.isValid()) return null
-
+  buildRelease() {
     this.release = _.cloneDeep(this.template)
 
     _.forEach([
-      ['apiVersion'                              , 'extensions/v1beta1']   ,
-      ['metadata.name'                           , this.component.name]    ,
-      ['spec.selector.matchLabels.component'     , this.component.name]    ,
-      ['spec.selector.matchLabels.version'       , this.component.version] ,
-      ['spec.template.metadata.labels.component' , this.component.name]    ,
-      ['spec.template.metadata.labels.version'   , this.component.version] ,
-      ['spec.template.metadata.labels.revision'  , this.revision]          ,
-      ['spec.template.metadata.labels.timestamp' , this.timestamp]         ,
-      ['spec.template.spec.containers[0].name'   , this.component.name]    ,
-      ['spec.template.spec.containers[0].image'  , this.component.image]
+      ['apiVersion'                              , 'apps/v1beta2']   ,
+      ['metadata.name'                           , this.spec.name]    ,
+      ['spec.selector.matchLabels.component'     , this.spec.name]    ,
+      ['spec.template.metadata.labels.component' , this.spec.name]    ,
+      ['spec.template.spec.containers[0].name'   , this.spec.name]    ,
+      ['spec.template.spec.containers[0].image'  , this.spec.image]
     ], ([key, val]) => {
       _.set(this.release, key, `${val}`)
     })
@@ -97,20 +99,28 @@ module.exports = class Deployment {
       _.set(this.release, 'spec.template.spec.containers[0].args', this.args())
     }
 
-    this.addEnvironmentVars(vars)
+    this.addEnvironmentVars()
+
+    return this.release
   }
 
   static template(data) {
     return {
       kind: 'Deployment',
+      apiVersion: null,
+      metadata: null,
       spec: {
         replicas: 1,
+        selector: null,
         template: {
+          metadata: null,
           spec: {
             imagePullSecrets: [{
               name: 'com.docker.hub.travisciresin',
             }],
             containers: [{
+              name: null,
+              image: null,
               imagePullPolicy: 'Always',
               ports: []
             }]

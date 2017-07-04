@@ -19,6 +19,7 @@
     "bluebird": "^3.4.7",
     "capitano": "^1.7.4",
     "debug": "^2.6.3",
+    "jsonschema": "^1.2.0",
     "lodash": "^4.17.4",
     "mkdirp": "^0.5.1",
     "yamljs": "^0.2.8"

@@ -6,28 +6,19 @@ const
   utils = require('../shared/utils')
 
 module.exports = class Ingress {
-  constructor(revision, component) {
-    this.revision  = revision
-    this.component = component
-    this.errors    = []
-    this.rationale = []
-    this.valid     = true
-    this.template  = _.get(this, 'component.kubernetes.ingress', Ingress.template())
-  }
-
-  writeRelease() {
-    if (! this.isValid()) return
-
-    return utils.writeRelease(utils.releasePath(this.component.name), this.release)
+  constructor(spec) {
+    this.spec = spec
+    this.template  = _.get(this.spec, 'kubernetes.ingress', Ingress.template())
+    this.release = undefined
   }
 
   buildRelease() {
-    if (! this.isValid()) return
+    if (!this.anyPorts()) return
 
     this.release = _.cloneDeep(this.template)
 
     _.forEach([
-      ['metadata.name' , this.component.name] ,
+      ['metadata.name' , this.spec.name] ,
       ['spec.tls'      , this.tls()]          ,
     ], ([key, val]) => {
       _.set(this.release, key, val)
@@ -43,12 +34,14 @@ module.exports = class Ingress {
     if (this.tls().length > 0) {
       _.set(this.release, 'metadata.annotations["kubernetes.io/tls-acme"]', 'true')
     }
+
+    return this.release
   }
 
   rules() {
     const paths = {}
 
-    _.forEach(this.component.getPorts(), port => {
+    _.forEach(this.getPorts(), port => {
       if (! paths[port.domain]) {
         paths[port.domain] = []
       }
@@ -56,8 +49,8 @@ module.exports = class Ingress {
       paths[port.domain].push({
         path: port.path,
         backend: {
-          serviceName: this.component.name,
-          servicePort: port.port
+          serviceName: this.spec.name,
+          servicePort: parseInt(port.port, 10)
         }
       })
     })
@@ -73,37 +66,28 @@ module.exports = class Ingress {
     })
   }
 
+  anyPorts() {
+    return this.getPorts().length > 0
+  }
+
+  getPorts() {
+    return _.get(this.spec, 'ports', [])
+  }
+
   tls() {
-    return _.map(this.component.getPorts(), port => {
+    return _.map(this.getPorts(), port => {
       return {
-        secretName: `${this.component.name}-${port.name || 'default'}-tls`,
+        secretName: `${this.spec.name}-${port.name || 'defaultport'}-tls`,
         hosts: [ port.domain ]
       }
     })
-  }
-
-  isValid() {
-    if (this.component.getPorts().length < 1) {
-      this.rationale.push('no ports defined')
-      this.valid = false
-
-      return false
-    }
-
-    if (_.compact(_.map(this.component.getPorts(), port => port.domain)).length < 1) {
-      this.valid = false
-      this.rationale.push('not using domain functionality of ingress')
-
-      return false
-    }
-
-    return true
   }
 
   static template() {
     return {
       kind: 'Ingress',
       apiVersion: 'extensions/v1beta1',
+      metadata: null,
       spec: {
         tls: [],
         rules: []
@@ -111,5 +95,4 @@ module.exports = class Ingress {
     }
   }
 }
-
 

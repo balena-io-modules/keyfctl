@@ -2,32 +2,52 @@
 
 const
   Promise = require('bluebird'),
-  _       = require("lodash"),
-  git     = require('../shared/git'),
+  _       = require("lodash")
+const { execAsync } = Promise.promisifyAll(require('child_process'))
+const git     = require('../shared/git'),
   utils   = require('../shared/utils')
+const Commit = require('../models/commit')
+const Keyframe = require('../models/keyframe')
+const Configuration = require('../models/configuration').Configuration
+
+const buildCommit = (commit) => {
+  return Promise.join(
+    execAsync(`git show -s --format=%ci ${commit.revision}`),
+    execAsync(`git show -s --format=%s ${commit.revision}`),
+    execAsync(`git show -s --format=%an ${commit.revision}`),
+    execAsync(`git show -s --format=%ae ${commit.revision}`),
+    git.readFileAt('./variables.yml', commit.revision),
+    git.readFileAt('./keyframe.yml', commit.revision),
+    (date, subject, authorName, authorEmail, configuration, keyframe) => {
+      _.set(commit, 'date', date)
+      _.set(commit, 'subject', subject)
+      _.set(commit, 'author.name', authorName)
+      _.set(commit, 'author.email', authorEmail)
+      _.set(commit, 'configuration', new Configuration(utils.parseYaml(configuration)))
+      _.set(commit, 'keyframe', new Keyframe(utils.parseYaml(keyframe)))
+    }
+  )
+  .return(commit)
+}
 
 // get the set of commits relevant to the keyframe file
-const generateFrames = (revision, end, verbose) => {
-  return git.commits(revision, end) // returns list of Commit objects
-  .each(commit => commit.getData())
-  .filter(commit => commit.validate(verbose)) // checks commits to ensure all frames are valid
-  .then(commits => {
-    return _.filter(commits, (commit, n) => {
-      if ((n + 1) === commits.length) return true
+const generateFrames = (options) => {
+  console.log(options)
+  const { base, head } = options
 
-      const prevCommit = commits[n + 1]
+  const baseCommit = new Commit(base)
+  const headCommit = new Commit(head)
 
-      if (commit.keyframe.raw !== prevCommit.keyframe.raw) return true
-      if (commit.rawVariables !== prevCommit.rawVariables) return true
-
-      return false
-    })
+  return Promise.each([baseCommit, headCommit], buildCommit)
+  .each(c => console.log(c.isValid()))
+  .then(res => {
+    console.log(res)
+    process.exit()
   })
-  .each(commit => commit.copyDataToFrames()) // moves commit/keyframe/var info to frame object
-  .then(commits => _.flatten(_.map(commits, commit => commit.frames))) // expands commits -> frames
-  .each(frame => frame.buildReleases()) // calls buildRelease() on each template type
-  .then(resolveAction) // figure out which keyframes are valid/usable
-  .then(_.reverse) // put things in chronological order
+  .catch(err => {
+    console.error(err)
+    process.exit()
+  })
 }
 module.exports.generateFrames = generateFrames
 
