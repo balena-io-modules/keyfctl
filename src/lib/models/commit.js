@@ -99,7 +99,7 @@ module.exports = class Commit {
     return (new RegExp(/^k8s-/i)).test(this.subject)
   }
 
-  validate() {
+  validate(verbose) {
     // If this is a commit made by keyfctl, return false
     if (this.isK8sCommit()) return false
 
@@ -120,7 +120,14 @@ module.exports = class Commit {
         this.componentVars(frame.component.name)
       )
 
-      if (! frame.validate()) return false
+      if (! frame.validate()) {
+        if (verbose) {
+          frame.commit = this;
+          console.log('==> Invalid frame found:');
+          console.log(utils.printFormatFrame(frame))
+        }
+        return false;
+      }
     }
 
     // Otherwise, return the validity status of the commit

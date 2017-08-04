@@ -7,10 +7,10 @@ const
   utils   = require('../shared/utils')
 
 // get the set of commits relevant to the keyframe file
-const generateFrames = (revision, end) => {
+const generateFrames = (revision, end, verbose) => {
   return git.commits(revision, end) // returns list of Commit objects
   .each(commit => commit.getData())
-  .filter(commit => commit.validate()) // checks commits to ensure all frames are valid
+  .filter(commit => commit.validate(verbose)) // checks commits to ensure all frames are valid
   .then(commits => {
     return _.filter(commits, (commit, n) => {
       if ((n + 1) === commits.length) return true
