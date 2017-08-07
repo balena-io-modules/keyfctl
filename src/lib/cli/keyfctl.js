@@ -122,7 +122,7 @@ capitano.command({
       utils.inspect('options: ', options)
     }
 
-    let res = core.generateFrames('HEAD')
+    let res = core.generateFrames('HEAD', null, options.verbose)
     .catch(err => {
       throw new Error(err)
     })
