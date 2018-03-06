@@ -6,48 +6,33 @@ const
   utils = require('../shared/utils')
 
 module.exports = class Service {
-  constructor(revision, component) {
-    this.component = component
-    this.revision  = revision
-    this.errors    = []
-    this.rationale = []
-    this.valid     = true
-    this.template  = _.get(this, 'component.kubernetes.service', Service.template())
+  constructor(spec) {
+    this.spec = spec
+    this.template  = _.get(this.spec, 'kubernetes.service', Service.template())
   }
 
   writeRelease() {
-    if (! this.isValid()) return
-
-    return utils.writeRelease(utils.releasePath(this.component.name), this.release)
+    return utils.writeRelease(utils.releasePath(this.spec.name), this.release)
   }
 
   ports() {
-    return _.map(_.get(this.component, 'ports', []), port => {
+    return _.map(_.get(this.spec, 'ports', []), port => {
       return {
         name: port.name || 'defaultport',
         protocol: port.protocol || 'TCP',
-        port: port.port,
+        port: parseInt(port.port, 10),
         targetPort: port.name || 'defaultport'
       }
     })
   }
 
-  isValid() {
-    if (this.ports().length < 1) return false
-
-    return true
-  }
-
   buildRelease() {
-    if (! this.isValid()) return
-
     this.release = _.cloneDeep(this.template)
 
     _.forEach([
       ['apiVersion'              , 'v1']                   ,
-      ['metadata.name'      , this.component.name]    ,
-      ['spec.selector.component' , this.component.name]    ,
-      ['spec.selector.version'   , this.component.version] ,
+      ['metadata.name'      , this.spec.name]    ,
+      ['spec.selector.component' , this.spec.name]    ,
       ['spec.ports'  , this.ports()]          ,
     ], ([key, val]) => {
       _.set(this.release, key, `${val}`)
@@ -58,12 +43,21 @@ module.exports = class Service {
     ], ([key, val]) => {
       _.set(this.release, key, val)
     })
+
+    return this.release
   }
 
   static template(data) {
     return {
       kind: 'Service',
+      apiVersion: null,
+      metadata: {
+        name: null
+      },
       spec: {
+        selector: {
+          component: null
+        },
         ports: []
       }
     }

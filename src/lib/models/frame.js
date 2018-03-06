@@ -72,6 +72,7 @@ module.exports = class Frame {
   }
 
   validateVars() {
+    console.log('validating vars')
     const availableVarsList = _.map(this.availableVars, 'name')
 
     for (let n of this.usedVars) {
@@ -81,6 +82,7 @@ module.exports = class Frame {
       this.rationale.push(`unavailable variable used (${n})`)
     }
 
+    eonsole.log(this.component, this.revision, this.rationale)
     return this.valid
   }
 

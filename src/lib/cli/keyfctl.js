@@ -8,6 +8,12 @@ const
   core        = require('../shared/core'),
   utils       = require('../shared/utils'),
   kubernetes  = require('../shared/kubernetes')
+const Keyframe = require('../models/keyframe')
+const Configuration = require('../models/configuration')
+const Secrets = require('../models/secrets')
+const Validator = require('../validator')
+const fleetAdapter = require('../adapters/fleet')
+const kubernetesAdapter = require('../adapters/kubernetes')
 
 const help = (params, options) => {
   console.log(`Usage: keyfctl [COMMANDS] [OPTIONS]`)
@@ -25,12 +31,6 @@ const parseGlobalOpts = (options) => {
     process.exit(0)
   }
 }
-
-capitano.command({
-  signature: 'help',
-  description: 'output general help page',
-  action: help
-})
 
 capitano.globalOption({
   signature: 'help',
@@ -52,133 +52,103 @@ capitano.globalOption({
 })
 
 capitano.command({
-  signature: 'k8s get target',
-  description: 'Display the cluster currently configured for k8s commands',
-  action: (params, options) => {
-    kubernetes.viewActiveConfig()
-    .then(console.log)
-    .catch(utils.printStderr)
-  }
+  signature: 'help',
+  description: 'output general help page',
+  action: help
 })
 
 capitano.command({
-  signature: 'k8s apply <component>',
-  description: 'Apply generated releases for a component to a cluster',
-  action: (params, options) => {
-    kubernetes.apply(params.component)
-    .then(console.log)
-    .catch(utils.printStderr)
-  }
-})
-
-capitano.command({
-  signature: 'k8s logs <component>',
-  description: 'Get logs for component containers',
-  action: (params, options) => {
-    console.log(params, options)
-    kubernetes.logs(params.component)
-    .then(console.log)
-  }
-})
-
-capitano.command({
-  signature: 'k8s delete <component>',
-  description: 'Delete a component and all its resources from a k8s cluster',
-  action: (params, options) => {
-    kubernetes.deleteComponent(params.component)
-    .then(stdout => {
-      console.log(stdout)
-      console.log('Deleted ingress, service, and deployment. You may need to manually clean up other resources.')
-    })
-    .catch(utils.printStderr)
-  }
-})
-
-capitano.command({
-  signature: 'k8s releases generate',
+  signature: 'generate',
   options: [{
-    signature: 'nowrite',
-    boolean: true,
+    signature: 'keyframe',
+    parameter: 'keyframe',
+    alias: [ 'k' ],
     required: false
   }, {
-    signature: 'nocommit',
-    boolean: true,
-    required: false
-  }, {
-    signature: 'writeall',
-    boolean: true,
-    required: false
-  }, {
-    signature: 'component',
+    signature: 'configuration',
+    parameter: 'configuration',
     alias: [ 'c' ],
-    parameter: 'component',
     required: false
+  }, {
+    signature: 'secrets',
+    parameter: 'secrets',
+    alias: [ 's' ],
+    required: false
+  }, {
+    signature: 'write',
+    alias: [ 'w' ],
+    boolean: true
+  }, {
+    signature: 'deploy',
+    alias: [ 'd' ],
+    boolean: true
+  }, {
+    signature: 'verbose',
+    alias: [ 'v' ],
+    boolean: true
   }],
   action: (params, options) => {
-    parseGlobalOpts(options)
+    if (options.verbose) console.error(options)
 
-    if (options.vv) {
-      Promise.longStackTraces()
-      utils.inspect('options: ', options)
-    }
+    const {
+      deploy,
+      write,
+      verbose,
+      keyframe = './keyframe.yml',
+      configuration = './configuration.yml',
+      secrets = './secrets.yml'
+    } = options
 
-    let res = core.generateFrames('HEAD', null, options.verbose)
-    .catch(err => {
-      throw new Error(err)
+    return Promise.join(
+      Keyframe.fromFile(keyframe),
+      Configuration.fromFile(configuration),
+      Secrets.fromFile(secrets),
+      (keyframe, config, secrets) => {
+        return Promise.join(
+          keyframe.checkConfiguration(config),
+          keyframe.checkSecrets(secrets),
+          (configRes, secretsRes) => {
+            if (configRes[0] && secretsRes[0]) {
+              if (verbose) console.error('valid: OK')
+
+              return
+            }
+
+            throw new Error(configRes[1].concat(secretsRes[1]).join('\n'))
+          }
+        )
+        .return([keyframe, config, secrets])
+      }
+    )
+    .then(([keyframe, config, secrets]) => {
+      keyframe.addDeployAdapter('fleet', fleetAdapter)
+      keyframe.addDeployAdapter('kubernetes', kubernetesAdapter)
+
+      const errors = keyframe.checkAdapters()
+
+      if (errors.length > 0) {
+        throw new Error(errors)
+      }
+
+      const plans = keyframe.plan(config, secrets)
+      if (verbose) console.error(JSON.stringify(plans, null, 2))
+
+      if (deploy) {
+        return keyframe.deploy(plans)
+        .tap(console.error)
+        .return(plans)
+      }
+
+      return plans
     })
+    .filter(plan => plan.target === 'kubernetes')
+    .map(plan => {
+      if (!write) return plan
 
-    if (options.verbose) {
-      res.tap(frames => {
-        console.log('==> All valid frames')
-        for (let frame of frames) {
-          // Output some feedback about the frame history
-          console.log(utils.printFormatFrame(frame))
-        }
+      return Promise.map(plan.specs, spec => {
+        return utils.writeRelease(utils.releasePath(plan.name), spec)
       })
-    }
-
-    res = res.filter(frame => {
-      // Get rid of any frames that aren't deployable or are redundant
-      return frame.action !== 'noop'
     })
-
-    if (options.component != null) {
-      res = res.filter(frame => {
-        // Get rid of any frames that don't match the component filter
-        return frame.component.name === options.component
-      })
-    }
-
-    if (options.verbose) {
-      res.tap(frames => {
-        console.log('==> Valid, actionable frames')
-        for (let frame of frames) {
-          // Output some feedback about the frame history
-          console.log(utils.printFormatFrame(frame))
-        }
-      })
-    }
-
-    if (!options.writeall) {
-      res = res.filter(frame => frame.isNewRelease())
-      .tap(frames => {
-        console.error('==> New frames')
-        for (let frame of frames) {
-          // Output some feedback about the frame history
-          console.error(utils.printFormatFrame(frame))
-          if (options.vv) utils.inspect(frame)
-        }
-      })
-    }
-
-    // unless writing to disk is disabled, write + commit
-    if (! options['nowrite']) {
-      // write each frame into a commit, (unless --nocommit) unless it already exists
-      res.mapSeries(frame => frame.write(!options['nocommit']))
-      .tapCatch(err => {
-        console.error(err.message)
-      })
-    }
   }
 })
 

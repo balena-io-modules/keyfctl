@@ -2,6 +2,18 @@
 
 **WARNING: This is a WIP tool, and is currently alpha software**
 
+TODO:
+
+* module for parsing keyframe files
+* models for each type of deployable artifact
+* module for converting deployable artifact to output format
+* module for taking output format and applying it
+* wrapper module for determining changed targets and then running deploys for
+  them
+* cli commands
+  validate -f <filename>
+
+
 ## What does it do?
 
 Currently, this tool will read `keyframe.yml` and `variables.yml`
@@ -29,24 +41,16 @@ Pull the latest code.
 ## Usage
 
 * `cd` into the keyframe repo you want to run this on
-* run `DEBUG=keyfctl <path-to-this-repo>/bin/keyfctl help`
+* run `<path-to-this-repo>/bin/keyfctl help`
 
-Run it without DEBUG if you want less output. 99% of the time, as a developer
-you probably want to run `keyfctl release generate --nocommit -v`, which will
-simulate the changes that will be committed when your PR into the keyframe is
-actually merged. `--nocommit` will disable actually committing the changes to
-the release files (which must be done post-merge to master), and `-v` will give
-more output about what `keyfctl` is doing and why.
+99% of the time you probably want to run `keyfctl generate -w`, which will
+write the release files to `k8s/releases`. If you drop the `-w`, it will do
+everything except write the releases, which will effectively validate the
+keyframe.
 
 ### Commands
 
-k8s help
-k8s get target
-k8s apply <component>
-k8s logs <component>
-k8s delete <component>
-
-release generate [-c component --nowrite --nocommit -v --vv]
+generate [ -v, -d, -k, -c, -s, -w ]
 
 ## Development
 
