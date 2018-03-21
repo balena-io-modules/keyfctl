@@ -8,9 +8,16 @@ const
 module.exports = class Deployment {
   constructor(spec) {
     this.spec = spec
+    this.keyMappings = {
+      "spec.template.spec.containers[0].volumes": "spec.template.spec.containers[0].volumeMounts"
+    }
     this.template = _.get(this.spec, 'kubernetes.deployment', Deployment.template())
   }
 
+  replaceKey(key) {
+    if (key in this.keyMappings)return this.keyMappings[key]
+    else return key
+  }
   versionName() {
     return `${this.spec.name}-${this.spec.version}`
   }
@@ -66,6 +73,29 @@ module.exports = class Deployment {
     })
   }
 
+  volumeMounts() {
+    return _.map(_.get(this.spec, 'volumes', []), volume => {
+      const out = {
+        name: volume.name,
+        mountPath: volume.destination,
+      }
+      return out
+    })
+  }
+
+  volumes() {
+
+    return _.map(_.get(this.spec, 'volumes', []), volume => {
+      const out = {
+        name: volume.name,
+        hostPath: {
+          path: volume.source,
+        }
+      }
+      return out
+    })
+  }
+
   instances() {
     return _.get(this.spec, 'instances', 1)
   }
@@ -89,10 +119,12 @@ module.exports = class Deployment {
     })
 
     _.forEach([
-      ['spec.template.spec.containers[0].ports' , this.ports()]     ,
-      ['spec.replicas'                          , this.instances()]
+      ['spec.template.spec.containers[0].ports'   , this.ports()]        ,
+      ['spec.template.spec.containers[0].volumes' , this.volumeMounts()] ,
+      ['spec.template.spec.volumes'               , this.volumes()]      ,
+      ['spec.replicas'                            , this.instances()]
     ], ([key, val]) => {
-      _.set(this.release, key, val)
+      _.set(this.release, this.replaceKey(key), val)
     })
 
     if (this.args()) {
@@ -122,8 +154,10 @@ module.exports = class Deployment {
               name: null,
               image: null,
               imagePullPolicy: 'Always',
-              ports: []
-            }]
+              ports: [],
+              volumeMounts: []
+            }],
+            volumes: []
           }
         }
       }

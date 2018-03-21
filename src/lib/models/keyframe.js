@@ -179,6 +179,19 @@ module.exports = class Keyframe {
                           protocol: { type: 'string' }
                         }
                       }
+                    },
+                    volumes: {
+                      type: 'array',
+                      minItems: 0,
+                      items: {
+                        type: 'object',
+                        properties: {
+                          type: { type: 'string' },
+                          source: { type: 'string', required: true },
+                          name: { type: 'string', required: true },
+                          destination: { type: 'string', required: true }
+                        }
+                      }
                     }
                   }
                 }
