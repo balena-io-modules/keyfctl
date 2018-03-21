@@ -1,0 +1,38 @@
+---
+version: 2
+jobs:
+  build:
+    docker:
+      - image: library/docker:17.05
+    working_directory: /tmp/build
+    environment:
+      DOCKER_USERNAME: travisciresin
+      DOCKER_IMAGE: resin/keyfctl
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run: |
+          docker info
+          docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
+      - run:
+          name: Build
+          command: |
+            set -x
+            docker pull ${DOCKER_IMAGE}:${CIRCLE_BRANCH} || \
+              docker pull ${DOCKER_IMAGE}:master || true
+            docker build --rm=false --pull --tag ${DOCKER_IMAGE}:${CIRCLE_SHA1} .
+      - deploy:
+          name: Push
+          command: |
+            docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
+
+            docker push ${DOCKER_IMAGE}:${CIRCLE_SHA1}
+
+            docker tag ${DOCKER_IMAGE}:${CIRCLE_SHA1} ${DOCKER_IMAGE}:${CIRCLE_BRANCH}
+            docker push ${DOCKER_IMAGE}:${CIRCLE_BRANCH}
+
+            apk add --no-cache git
+            tag=$(git describe --tags)
+            docker tag ${DOCKER_IMAGE}:${CIRCLE_SHA1} ${DOCKER_IMAGE}:${tag}
+            docker push ${DOCKER_IMAGE}:${tag}
+
