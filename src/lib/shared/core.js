@@ -122,6 +122,11 @@ const resolveAction = (frames) => {
       frame.action = 'update'
     }
 
+    if (JSON.stringify(frame.component.volumes) !== JSON.stringify(prev.component.volumes)) {
+        frame.rationale.push('change in component volumes')
+        frame.action = 'update'
+    }
+
     if (frame.action == null) {
       frame.action = 'noop'
     }

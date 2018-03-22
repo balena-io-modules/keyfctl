@@ -57,12 +57,31 @@ module.exports = class Deployment {
 
   ports() {
     return _.map(_.get(this.spec, 'ports', []), domain => {
-      const out = {
+      return {
         name: domain.name || 'defaultport',
         containerPort: parseInt(domain.port, 10)
       }
+    })
+  }
 
-      return out
+  volumeMounts() {
+    return _.map(_.get(this.spec, 'volumes', []), volume => {
+      return {
+        name: volume.name,
+        mountPath: volume.destination,
+      }
+    })
+  }
+
+  volumes() {
+
+    return _.map(_.get(this.spec, 'volumes', []), volume => {
+      return {
+        name: volume.name,
+        hostPath: {
+          path: volume.source,
+        }
+      }
     })
   }
 
@@ -89,8 +108,10 @@ module.exports = class Deployment {
     })
 
     _.forEach([
-      ['spec.template.spec.containers[0].ports' , this.ports()]     ,
-      ['spec.replicas'                          , this.instances()]
+      ['spec.template.spec.containers[0].ports'        , this.ports()]        ,
+      ['spec.template.spec.containers[0].volumeMounts' , this.volumeMounts()] ,
+      ['spec.template.spec.volumes'                    , this.volumes()]      ,
+      ['spec.replicas'                                 , this.instances()]
     ], ([key, val]) => {
       _.set(this.release, key, val)
     })
@@ -122,8 +143,10 @@ module.exports = class Deployment {
               name: null,
               image: null,
               imagePullPolicy: 'Always',
-              ports: []
-            }]
+              ports: [],
+              volumeMounts: []
+            }],
+            volumes: []
           }
         }
       }
