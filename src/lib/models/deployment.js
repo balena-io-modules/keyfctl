@@ -1,9 +1,7 @@
 'use strict';
 
 const
-  _     = require("lodash"),
-  file  = require('../shared/file'),
-  utils = require('../shared/utils')
+  _     = require("lodash")
 
 module.exports = class Deployment {
   constructor(spec) {
@@ -24,7 +22,6 @@ module.exports = class Deployment {
   }
 
   addEnvironmentVars() {
-    const env = []
 
     let envs = _.map(this.usedVars(), (variable) => {
       return {
@@ -127,7 +124,7 @@ module.exports = class Deployment {
     return this.release
   }
 
-  static template(data) {
+  static template() {
     return {
       kind: 'Deployment',
       apiVersion: null,
