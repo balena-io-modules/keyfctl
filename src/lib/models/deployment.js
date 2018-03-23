@@ -108,6 +108,8 @@ module.exports = class Deployment {
     })
 
     _.forEach([
+      ['spec.template.spec.containers[0].securityContext.capabilities' ,
+        this.spec.capabilities ],
       ['spec.template.spec.containers[0].ports'        , this.ports()]        ,
       ['spec.template.spec.containers[0].volumeMounts' , this.volumeMounts()] ,
       ['spec.template.spec.volumes'                    , this.volumes()]      ,
@@ -144,7 +146,13 @@ module.exports = class Deployment {
               image: null,
               imagePullPolicy: 'Always',
               ports: [],
-              volumeMounts: []
+              volumeMounts: [],
+              securityContext: {
+                capabilities: {
+                  add: [],
+                  drop: [],
+                }
+              },
             }],
             volumes: []
           }

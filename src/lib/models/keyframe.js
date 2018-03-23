@@ -192,6 +192,16 @@ module.exports = class Keyframe {
                           destination: { type: 'string', required: true }
                         }
                       }
+                    },
+                    capabilities: {
+                      type: 'object',
+                      properties: {
+                        add: {
+                          type: 'array',
+                          minItems: 0,
+                          items: { type: 'string' }
+                        }
+                      }
                     }
                   }
                 }
