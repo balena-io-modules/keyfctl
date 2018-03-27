@@ -127,6 +127,11 @@ const resolveAction = (frames) => {
         frame.action = 'update'
     }
 
+    if (JSON.stringify(frame.component.capabilities) !== JSON.stringify(prev.component.capabilities)) {
+        frame.rationale.push('change in component capabilities')
+        frame.action = 'update'
+    }
+
     if (frame.action == null) {
       frame.action = 'noop'
     }
