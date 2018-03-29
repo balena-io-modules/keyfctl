@@ -1,9 +1,7 @@
 'use strict';
 
 const
-  _     = require('lodash'),
-  file  = require('../shared/file'),
-  utils = require('../shared/utils')
+  _     = require('lodash')
 
 module.exports = class Ingress {
   constructor(spec) {
