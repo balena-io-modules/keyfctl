@@ -58,14 +58,12 @@ module.exports = class Deployment {
 
   ports() {
     return _.map(_.get(this.spec, 'ports', []), domain => {
-      let ret = {
+      const ret = {
           name: domain.name || 'defaultport',
           containerPort: parseInt(domain.port, 10)
       }
       if (this.hostNetwork() && _.get(this.spec, 'hostPort') ){
-          ret+={
-              hostPort: parseInt(this.spec.hostPort, 10)
-          }
+          ret.hostPort=parseInt(this.spec.hostPort, 10)
       }
       return ret
     })
