@@ -1,9 +1,7 @@
 'use strict';
 
 const
-  _     = require('lodash'),
-  file  = require('../shared/file'),
-  utils = require('../shared/utils')
+  _     = require('lodash')
 
 module.exports = class Ingress {
   constructor(spec) {
@@ -14,6 +12,7 @@ module.exports = class Ingress {
 
   buildRelease() {
     if (!this.anyPorts()) return
+    if (this.hostNetwork()) return
 
     this.release = _.cloneDeep(this.template)
 
@@ -72,6 +71,10 @@ module.exports = class Ingress {
 
   getPorts() {
     return _.get(this.spec, 'ports', [])
+  }
+
+  hostNetwork() {
+      return _.get(this.spec, 'hostNetwork')
   }
 
   tls() {

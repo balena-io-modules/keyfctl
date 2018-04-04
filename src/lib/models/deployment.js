@@ -52,12 +52,20 @@ module.exports = class Deployment {
     _.set(this.release, 'spec.template.spec.containers[0].env', envs)
   }
 
+  hostNetwork() {
+      return Boolean(_.get(this.spec, 'hostNetwork', false))
+  }
+
   ports() {
     return _.map(_.get(this.spec, 'ports', []), domain => {
-      return {
-        name: domain.name || 'defaultport',
-        containerPort: parseInt(domain.port, 10)
+      const ret = {
+          name: domain.name || 'defaultport',
+          containerPort: parseInt(domain.port, 10)
       }
+      if (this.hostNetwork() && _.get(this.spec, 'hostPort') ){
+          ret.hostPort=parseInt(this.spec.hostPort, 10)
+      }
+      return ret
     })
   }
 
@@ -107,6 +115,7 @@ module.exports = class Deployment {
     _.forEach([
       ['spec.template.spec.containers[0].securityContext.capabilities' ,
         this.spec.capabilities ],
+      ['spec.template.spec.hostNetwork'                , this.hostNetwork()]  ,
       ['spec.template.spec.containers[0].ports'        , this.ports()]        ,
       ['spec.template.spec.containers[0].volumeMounts' , this.volumeMounts()] ,
       ['spec.template.spec.volumes'                    , this.volumes()]      ,
@@ -138,6 +147,7 @@ module.exports = class Deployment {
             imagePullSecrets: [{
               name: 'com.docker.hub.travisciresin',
             }],
+            hostNetwork: false,
             containers: [{
               name: null,
               image: null,

@@ -166,6 +166,7 @@ module.exports = class Keyframe {
                       minItems: 1,
                       items: { type: 'string' }
                     },
+                    hostNetwork: { type: 'boolean' },
                     ports: {
                       type: 'array',
                       minItems: 1,
@@ -174,6 +175,7 @@ module.exports = class Keyframe {
                         properties: {
                           path: { type: 'string', required: true },
                           port: { type: 'string', required: true },
+                          hostPort: { type: 'string' },
                           domain: { type: 'string' },
                           name: { type: 'string' },
                           protocol: { type: 'string' }
