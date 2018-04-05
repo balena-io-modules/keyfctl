@@ -62,8 +62,8 @@ module.exports = class Deployment {
           name: domain.name || 'defaultport',
           containerPort: parseInt(domain.port, 10)
       }
-      if (this.hostNetwork() && _.get(this.spec, 'hostPort') ){
-          ret.hostPort=parseInt(this.spec.hostPort, 10)
+      if (_.get(domain, 'hostPort')){
+          ret.hostPort=parseInt(domain.hostPort, 10)
       }
       return ret
     })
