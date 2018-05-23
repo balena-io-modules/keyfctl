@@ -6,9 +6,6 @@ const validateSchema = require('jsonschema').validate
 const readFileAsync  = Promise.promisify(require('fs').readFile)
 
 const utils     = require('../shared/utils')
-const git       = require('../shared/git')
-const Component = require('../models/component')
-const Frame     = require('../models/frame')
 
 module.exports = class Keyframe {
   static fromFile(path) {
@@ -22,8 +19,7 @@ module.exports = class Keyframe {
 
   constructor(obj, options = {}) {
     const valid = validateSchema(obj, this.schema())
-
-    if (obj.api_version != 'v2.0.0') {
+    if (obj.api_version !== 'v2.0.0') {
       throw new Error('This version of keyfctl only supports keyframe api version v2.0.0')
     }
 
@@ -41,12 +37,12 @@ module.exports = class Keyframe {
   }
 
   componentVars(componentName) {
-    return _.get(this.services, `componentName}.variables`, [])
+    return _.get(this.services, [componentName, 'variables'], [])
   }
 
   services() {
     if (_.has(this, 'services')) return this.services
-    if (_.has(this, 'components')) return this.components
+    if (_.has(this, 'components')) return _.get(this, 'components')
 
     return {}
   }
@@ -141,8 +137,6 @@ module.exports = class Keyframe {
           type: 'object',
           required: true,
           properties: {
-            daemons: { type: 'object' },
-            docker: { type: 'object' },
             components: {
               type: 'object',
               additionalProperties: false,
@@ -184,7 +178,7 @@ module.exports = class Keyframe {
                     },
                     volumes: {
                       type: 'array',
-                      minItems: 0,
+                      minItems: 1,
                       items: {
                         type: 'object',
                         properties: {
