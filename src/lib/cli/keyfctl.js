@@ -149,6 +149,10 @@ capitano.command({
         return utils.writeRelease(utils.releasePath(plan.name), spec)
       })
     })
+    .catch(err => {
+      console.error(err)
+      process.exit(1)
+    })
   }
 })
 
@@ -158,4 +162,3 @@ capitano.run(process.argv, (err) => {
     throw new Error(err.stack)
   }
 })
-

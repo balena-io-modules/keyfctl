@@ -38,7 +38,7 @@ module.exports = class Secret {
     for (let n of this.usedVars) {
       const res = _.find(this.availableVars, ['name', n])
 
-      _.set(this.release, `data.${res.name}`, new Buffer(res.value).toString('base64'))
+      _.set(this.release, `data.${res.name}`, new Buffer.from(res.value).toString('base64'))
     }
 
     return this.release
