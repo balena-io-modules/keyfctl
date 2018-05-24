@@ -89,18 +89,17 @@ capitano.command({
   }],
   action: (params, options) => {
     if (options.verbose) console.error(options)
-
     const {
       deploy,
       write,
       verbose,
-      keyframe = './keyframe.yml',
+      keyframe = ['./keyframe.yml'],
       configuration = './configuration.yml',
       secrets = './secrets.yml'
     } = options
 
     return Promise.join(
-      Keyframe.fromFile(keyframe),
+      Keyframe.fromFiles(keyframe),
       Configuration.fromFile(configuration),
       Secrets.fromFile(secrets),
       (keyframe, config, secrets) => {

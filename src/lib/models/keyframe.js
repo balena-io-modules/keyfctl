@@ -8,17 +8,27 @@ const readFileAsync  = Promise.promisify(require('fs').readFile)
 const utils     = require('../shared/utils')
 
 module.exports = class Keyframe {
-  static fromFile(path) {
-    return readFileAsync(path, 'utf8')
-    .then(this.fromYaml)
+  static fromFiles(paths) {
+    return Promise.map(paths, path => {
+      return readFileAsync(path, 'utf8').then(utils.parseYaml)
+    })
+    .then((kLayers) => {
+
+      // create and validate core keyframe.
+      var kf = kLayers[0]
+      new Keyframe(kf, true)
+
+      // merge all layers(core keyframe + customizations on top)
+      for (let l of kLayers.slice(1)){
+        kf = _.merge(kf, l)
+      }
+      return new Keyframe(kf)
+    })
   }
 
-  static fromYaml(yaml) {
-    return new Keyframe(utils.parseYaml(yaml))
-  }
+  constructor(obj, isCore=false, options = {}) {
+    const valid = this.validateKeyframe(obj, isCore)
 
-  constructor(obj, options = {}) {
-    const valid = validateSchema(obj, this.schema())
     if (obj.api_version !== 'v2.0.0') {
       throw new Error('This version of keyfctl only supports keyframe api version v2.0.0')
     }
@@ -111,7 +121,20 @@ module.exports = class Keyframe {
     return [errors.length === 0, errors]
   }
 
-  schema() {
+  validateKeyframe(obj, isCore=false){
+      if (isCore){
+          return validateSchema(obj, this.coreSchema())
+      }
+      return validateSchema(obj, this.schema())
+  }
+
+  schema(){
+    // Full keyframe schema, including any customization or extension
+    return _.merge(this.coreSchema(), {})
+  }
+
+  coreSchema() {
+    // Core keyframe schema
     return {
       id: '/Keyframe',
       type: 'object',
