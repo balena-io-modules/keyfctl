@@ -89,6 +89,10 @@ capitano.command({
   }],
   action: (params, options) => {
     if (options.verbose) console.error(options)
+    if (_.isString(options.keyframe)){
+      options.keyframe = [ options.keyframe ]
+    }
+
     const {
       deploy,
       write,

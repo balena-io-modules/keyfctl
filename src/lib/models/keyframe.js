@@ -15,19 +15,27 @@ module.exports = class Keyframe {
     .then((kLayers) => {
 
       // create and validate core keyframe.
-      var kf = kLayers[0]
-      new Keyframe(kf, true)
+      var kf = new Keyframe(kLayers[0], true)
 
       // merge all layers(core keyframe + customizations on top)
       for (let l of kLayers.slice(1)){
-        kf = _.merge(kf, l)
+        kf.mergeLayer(l)
       }
-      return new Keyframe(kf)
+
+      // validate
+      var valid = kf.validateKeyframeData()
+      if (valid.errors.length > 0) {
+        for (var e of valid.errors){
+          console.error( 'Error: KeyframeLayer.data.components'+ e.stack.slice(8))
+        }
+        process.exit(1)
+      }
+      return kf
     })
   }
 
-  constructor(obj, isCore=false, options = {}) {
-    const valid = this.validateKeyframe(obj, isCore)
+  constructor(obj, options = {}) {
+    const valid = this.validateCoreKeyframe(obj)
 
     if (obj.api_version !== 'v2.0.0') {
       throw new Error('This version of keyfctl only supports keyframe api version v2.0.0')
@@ -36,10 +44,17 @@ module.exports = class Keyframe {
     this.adapters = _.get(options, 'adapters', {})
 
     if (valid.errors.length > 0) {
-      throw new Error(valid.errors.join('\n'))
+      for (var e of valid.errors){
+        console.error('Error: keyframe' + e.stack.slice(8))
+      }
+      process.exit(1)
     }
 
     _.merge(this, obj.data)
+  }
+
+  mergeLayer(layer){
+    _.merge(this, layer.data)
   }
 
   globalVars() {
@@ -121,11 +136,12 @@ module.exports = class Keyframe {
     return [errors.length === 0, errors]
   }
 
-  validateKeyframe(obj, isCore=false){
-      if (isCore){
-          return validateSchema(obj, this.coreSchema())
-      }
-      return validateSchema(obj, this.schema())
+  validateCoreKeyframe(obj) {
+    return validateSchema(obj, this.coreSchema())
+  }
+
+  validateKeyframeData(){
+    return validateSchema(this.components, this.schema().properties.data.properties.components)
   }
 
   schema(){
