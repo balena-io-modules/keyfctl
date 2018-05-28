@@ -155,6 +155,28 @@ module.exports = class Keyframe {
                 "[a-z\-]+":{
                   properties: {
                     serviceType: { type: 'string', enum: ["LoadBalancer", "NodePort", "ClusterIP"] },
+                    resources: {
+                      type: 'object',
+                      additionalProperties: false,
+                      properties: {
+                        requests: {
+                          type: 'object',
+                          additionalProperties: false,
+                          properties: {
+                            memory: { type: 'string', pattern: '^[0-9]+((E|P|T|G|M|K)[i]?)?$' },
+                            cpu: { type: 'string', pattern: '^[0-9]+m$' }
+                          }
+                        },
+                        limits: {
+                          type: 'object',
+                          additionalProperties: false,
+                          properties: {
+                            memory: { type: 'string', pattern: '^[0-9]+((E|P|T|G|M|K)[i]?)?$' },
+                            cpu: { type: 'string', pattern: '^[0-9]+m$' }
+                          }
+                        }
+                      }
+                    }
                   }
                 }
               }

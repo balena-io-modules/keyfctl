@@ -119,7 +119,8 @@ module.exports = class Deployment {
       ['spec.template.spec.containers[0].ports'        , this.ports()]        ,
       ['spec.template.spec.containers[0].volumeMounts' , this.volumeMounts()] ,
       ['spec.template.spec.volumes'                    , this.volumes()]      ,
-      ['spec.replicas'                                 , this.instances()]
+      ['spec.replicas'                                 , this.instances()]    ,
+      ['spec.resources'                                , this.spec.resources]
     ], ([key, val]) => {
       _.set(this.release, key, val)
     })
