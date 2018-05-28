@@ -14,6 +14,10 @@ module.exports = class Service {
     return utils.writeRelease(utils.releasePath(this.spec.name), this.release)
   }
 
+  serviceType() {
+      return _.get(this.spec, 'serviceType', 'ClusterIP')
+  }
+
   ports() {
     return _.map(_.get(this.spec, 'ports', []), port => {
       return {
@@ -38,6 +42,7 @@ module.exports = class Service {
 
     _.forEach([
       ['spec.ports', this.ports()],
+      ['spec.type', this.serviceType()]
     ], ([key, val]) => {
       _.set(this.release, key, val)
     })

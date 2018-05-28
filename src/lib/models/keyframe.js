@@ -146,7 +146,23 @@ module.exports = class Keyframe {
 
   schema(){
     // Full keyframe schema, including any customization or extension
-    return _.merge(this.coreSchema(), {})
+    return _.merge(this.coreSchema(), {
+      properties: {
+        data: {
+          properties: {
+            components: {
+              patternProperties: {
+                "[a-z\-]+":{
+                  properties: {
+                    serviceType: { type: 'string', enum: ["LoadBalancer", "NodePort", "ClusterIP"] },
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    })
   }
 
   coreSchema() {
