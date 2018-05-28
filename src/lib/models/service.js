@@ -2,7 +2,6 @@
 
 const
   _     = require("lodash"),
-  file  = require('../shared/file'),
   utils = require('../shared/utils')
 
 module.exports = class Service {
@@ -30,16 +29,15 @@ module.exports = class Service {
     this.release = _.cloneDeep(this.template)
 
     _.forEach([
-      ['apiVersion'              , 'v1']                   ,
-      ['metadata.name'      , this.spec.name]    ,
-      ['spec.selector.component' , this.spec.name]    ,
-      ['spec.ports'  , this.ports()]          ,
+      ['apiVersion', 'v1'],
+      ['metadata.name', this.spec.name],
+      ['spec.selector.component', this.spec.name]
     ], ([key, val]) => {
       _.set(this.release, key, `${val}`)
     })
 
     _.forEach([
-      ['spec.ports'  , this.ports()]          ,
+      ['spec.ports', this.ports()],
     ], ([key, val]) => {
       _.set(this.release, key, val)
     })
@@ -47,7 +45,7 @@ module.exports = class Service {
     return this.release
   }
 
-  static template(data) {
+  static template() {
     return {
       kind: 'Service',
       apiVersion: null,
