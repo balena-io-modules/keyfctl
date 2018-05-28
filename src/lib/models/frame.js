@@ -8,6 +8,7 @@ const
   execAsync                       = Promise.promisify(require("child_process").exec),
   utils                           = require('../shared/utils'),
   git                             = require('../shared/git'),
+  AutoScaler                      = require('../models/autoscaler'),
   Deployment                      = require('../models/deployment'),
   Configmap                       = require('../models/configmap'),
   Ingress                         = require('../models/ingress'),
@@ -24,6 +25,7 @@ module.exports = class Frame {
     this.valid     = true
     this.rationale = []
     this.action    = null
+    this.autoscaler = new AutoScaler(this.revision, this.timestamp, this.component)
     this.deployment = new Deployment(this.revision, this.timestamp, this.component)
     this.configmap = new Configmap(this.revision, this.component)
     this.service = new Service(this.revision, this.component)
@@ -31,6 +33,12 @@ module.exports = class Frame {
   }
 
   validate() {
+    if (! this.autoscaler.valid) {
+        this.valid = false
+        this.rationale.push('invalid autoscaler')
+        this.rationale = _.merge(this.rationale, this.autoscaler.rationale)
+    }
+
     if (! this.deployment.valid) {
       this.valid = false
       this.rationale.push('invalid deployment')
@@ -66,7 +74,7 @@ module.exports = class Frame {
 
     this.deployment.buildRelease(this.usedVars)
 
-    _.forEach(['ingress', 'service'], (val) => {
+    _.forEach(['ingress', 'service', 'autoscaler'], (val) => {
       _.get(this, val).buildRelease()
     })
   }
@@ -96,6 +104,7 @@ module.exports = class Frame {
     return mkdirpAsync(path)
     .then(() => {
       return Promise.join(
+        this.autoscaler.writeRelease(),
         this.deployment.writeRelease(),
         this.ingress.writeRelease(),
         this.configmap.writeRelease(),

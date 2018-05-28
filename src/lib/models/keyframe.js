@@ -176,6 +176,33 @@ module.exports = class Keyframe {
                           }
                         }
                       }
+                    },
+                    autoscaler: {
+                      type: 'object',
+                      additionalProperties: false,
+                      properties: {
+                        minReplicas: { type: 'integer', required: true },
+                        maxReplicas: { type: 'integer', required: true },
+                        metrics: {
+                          type: 'array',
+                          minItems: 1,
+                          items: {
+                            type: 'object',
+                            additionalProperties: false,
+                            properties: {
+                              type: { type: 'string', required: true, enum: ["Resource"] },
+                              resource: {
+                                type: 'object',
+                                additionalProperties: false,
+                                properties: {
+                                  name: { type: 'string', required: true, enum: ["cpu", "memory"] },
+                                  targetAverageUtilization: { type: 'integer'}
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
                     }
                   }
                 }

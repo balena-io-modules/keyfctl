@@ -3,6 +3,7 @@
 const _          = require('lodash')
 const Promise    = require('bluebird')
 const execAsync  = Promise.promisify(require('child_process').exec)
+const AutoScaler    = require('../models/autoscaler')
 const Deployment = require('../models/deployment')
 const Service    = require('../models/service')
 const Ingress    = require('../models/ingress')
@@ -22,6 +23,7 @@ module.exports = class Kubernetes {
 
     const specs = []
 
+    specs.push(new AutoScaler(spec).buildRelease())
     specs.push(new Deployment(spec).buildRelease())
     specs.push(new Service(spec).buildRelease())
     specs.push(new Ingress(spec).buildRelease())
