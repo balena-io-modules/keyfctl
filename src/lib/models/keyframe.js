@@ -175,6 +175,7 @@ module.exports = class Keyframe {
         data: {
           type: 'object',
           required: true,
+          additionalProperties: false,
           properties: {
             components: {
               type: 'object',
@@ -183,6 +184,7 @@ module.exports = class Keyframe {
                 "[a-z\-]+": {
                   type: 'object',
                   required: true,
+                  additionalProperties: false,
                   properties: {
                     version: { type: 'string', required: true },
                     image: { type: 'string', required: true },
