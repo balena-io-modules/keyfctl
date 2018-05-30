@@ -15,7 +15,7 @@ module.exports = class Keyframe {
     .then((kLayers) => {
 
       // create and validate core keyframe.
-      var kf = new Keyframe(kLayers[0], true)
+      let kf = new Keyframe(kLayers[0], true)
 
       // merge all layers(core keyframe + customizations on top)
       for (let l of kLayers.slice(1)){
@@ -23,10 +23,10 @@ module.exports = class Keyframe {
       }
 
       // validate
-      var valid = kf.validateKeyframeData()
+      let valid = kf.validateKeyframeData()
       if (valid.errors.length > 0) {
-        for (var e of valid.errors){
-          console.error( 'Error: KeyframeLayer.data.components'+ e.stack.slice(8))
+        for (let err of valid.errors){
+          console.error( 'Error: KeyframeLayer.data.components'+ err.stack.slice(8))
         }
         process.exit(1)
       }
@@ -44,8 +44,8 @@ module.exports = class Keyframe {
     this.adapters = _.get(options, 'adapters', {})
 
     if (valid.errors.length > 0) {
-      for (var e of valid.errors){
-        console.error('Error: keyframe' + e.stack.slice(8))
+      for (let err of valid.errors){
+        console.error('Error: keyframe' + err.stack.slice(8))
       }
       process.exit(1)
     }
